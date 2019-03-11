@@ -202,8 +202,8 @@ def fasta_to_df(fasta):
             lines.pop()
         last_line = lines[-1]
         for line in range(len(lines)):
-		if len(lines[line]) < 1:
-			continue
+	    if len(lines[line]) < 1:
+	        continue
             i = lines[line].split()[0]
             if re.search("^>",i):
                 if ident and not len(seq) == 0:
