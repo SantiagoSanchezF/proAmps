@@ -130,10 +130,10 @@ def ohe_prediction(octas,model):
 ## predict the mature sequence and return annotation    
 def pred_mature(seq,model):
     pos,prob = ohe_prediction(seqs_to_ohe_octamers(seq),model)
-    if prob >= 0.5:
+    if prob >= 0.5 and len(seq[pos+4:]) > 4:
         return seq[pos+4:],"N-terminus CS predicted at position: " + str(pos+4) + ", with a probability of: " + str(np.round(prob,3)) 
     else:
-        return ""," No N-terminus CS predicted "
+        return seq," No N-terminus CS predicted "
 
 def pred_mature_from_list(seqs,model):
     mature, mature_annot = [],[]
