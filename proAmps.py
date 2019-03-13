@@ -60,7 +60,7 @@ def main(argv):
            cs = proAmps_module.CSpredictor(fasta,libpath + "/N_ter_proAmp.h5")         
            flag = "c"
        elif opt == "-p":
-           ap = proAmps_module.AMPpredictor(fasta,libpath + "/proAmp.h5")
+           ap = proAmps_module.AMPpredictor(fasta,libpath + "/LASTM_acc_chem.h5")
            ap.pred_from_propeps(libpath + "/N_ter_proAmp.h5")
            flag = "p"
        elif opt == "-o":
