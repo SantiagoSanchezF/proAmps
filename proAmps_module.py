@@ -145,6 +145,7 @@ def pred_mature_from_list(seqs,model):
 
 ## calulate the chemechical propierties of a list of sequences. uses R Peptides package and rpy2 library
 def calc(seqs,pep):
+    seqs = [x if len(x) < 102 else "WWWW" for x in seqs]
     df = {}
     df['mw'] = []
     df['tiny'] = []
