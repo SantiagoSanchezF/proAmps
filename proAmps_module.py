@@ -96,8 +96,8 @@ def pred_AMP(seqs,model):
         chem_array /= chem_std
         model = models.load_model(model)
         probs = model.predict([chem_array,ohe_seqs])
-        annot = [" no-AMP " if x < 0.5 else "predicted AMP with a probabiity of: " + str(np.round(x,3)) for x in probs]
-        y_pred = [0 if x < 0.5 else 1 for x in probs]
+        annot = [" no-AMP " if x < 0.505 else "predicted AMP with a probabiity of: " + str(np.round(x,3)) for x in probs]
+        y_pred = [0 if x < 0.505 else 1 for x in probs]
         return y_pred, annot
 
 ## take a sequence and make an np array with OHEing of the octamer, and the noralized position at the end of the vector
