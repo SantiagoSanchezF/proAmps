@@ -67,7 +67,7 @@ def main(argv):
 
     import proAmps_module
     if flag == "c":
-        cs = proAmps_module.CSpredictor(fasta, libpath + "/CS_N_dnn.h5",libpath + "/CS_N_rf.pkl" , libpath+ "/CS_N_svm.pkl",  libpath + "/CS_C_dnn.h5", libpath + "/CS_C_rf.pkl", libpath + "/CS_C_svm.pkl")         
+        cs = proAmps_module.CSpredictor(fasta, libpath + "/CS_N_dnn.h5",libpath + "/CS_N_svm.pkl" , libpath+ "/CS_N_svm.pkl",  libpath + "/CS_C_dnn.h5", libpath + "/CS_C_rf.pkl", libpath + "/CS_C_svm.pkl")         
         if flagO == 1:
             tem = sys.stdout
             sys.stdout = f = open(outfile, 'w')
@@ -80,7 +80,7 @@ def main(argv):
             sys.exit()
     elif flag == "p":
         ap = proAmps_module.AMPpredictor(fasta,libpath + "/proAmps.h5",libpath + "/proAmps_rf.pkl")
-        ap.pred_from_propeps( libpath + "/CS_N_dnn.h5",libpath + "/CS_N_rf.pkl" , libpath+ "/CS_N_svm.pkl",  libpath + "/CS_C_dnn.h5", libpath + "/CS_C_rf.pkl", libpath + "/CS_C_svm.pkl")
+        ap.pred_from_propeps( libpath + "/CS_N_dnn.h5",libpath + "/CS_N_svm.pkl" , libpath+ "/CS_N_svm.pkl",  libpath + "/CS_C_dnn.h5", libpath + "/CS_C_rf.pkl", libpath + "/CS_C_svm.pkl")
         if flagO == 1:
             tem = sys.stdout
             sys.stdout = f = open(outfile, 'w')
