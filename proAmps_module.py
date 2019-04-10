@@ -37,30 +37,31 @@ from sklearn.externals import joblib
 
 '''    CLASSES    '''
 class AMPpredictor:
-    def __init__(self,fasta,model,model_rf):
+    def __init__(self,fasta,multi_rf,model,model_rf):
         self.df = {}
         self.fasta = fasta
+        self.multi_rf = multi_rf
         self.model = model
         self.model_rf = model_rf
     def pred_from_propeps(self,modelN_dl,modelN_rf,modelN_svm,modelC_dl,modelC_rf,modelC_svm):
         CS = CSpredictor(self.fasta,modelN_dl,modelN_rf,modelN_svm,modelC_dl,modelC_rf,modelC_svm)
         self.df = CS.df
-        self.df["y_pred"], self.df["annot"] = pred_AMP(self.df["mature"],self.model,self.model_rf)
+        self.df["y_pred"], self.df["annot"] = pred_AMP(self.df["mature"],self.multi_rf,self.model,self.model_rf)
         return self.df["y_pred"]
     def predict_amps(self):
         self.df["ids"],self.df["seqs"] = fasta_to_df(self.fasta)
-        self.df["y_pred"], self.df["annot"] = pred_AMP(self.df["seqs"],self.model,self.model_rf)
+        self.df["y_pred"], self.df["annot"] = pred_AMP(self.df["seqs"],self.multi_rf,self.model,self.model_rf)
         return self.df["y_pred"]
     def print_fasta(self):
         try:
             if self.df["mature"]:
                 for i in range(len(self.df["ids"])):
-                    print(">" + self.df["ids"][i] + "    |    " + self.df['mature_annot'][i] 
-                            + "    |    " + self.df["annot"][i]
+                    print(">" + self.df["ids"][i] + " | " + self.df['mature_annot'][i] 
+                            + "|" + self.df["annot"][i]
                             + "\n" + self.df['mature'][i] )
         except:
             for i in range(len(self.df["ids"])):
-                print(">" + self.df["ids"][i] + "    |    " + self.df["annot"][i]
+                print(">" + self.df["ids"][i] + " | " + self.df["annot"][i]
                         + "\n" + self.df['seqs'][i] )
 
 class CSpredictor:
@@ -76,7 +77,7 @@ class CSpredictor:
         self.df['mature'],self.df['mature_annot'] = pred_mature_from_list(self.df["seqs"],self.clfN,self.modelN_rf,self.modelN_svm,self.clfC,self.modelC_rf,self.modelC_svm)
     def print_fasta(self):
         for i in range(len(self.df["ids"])):
-            print(">" + self.df["ids"][i] + "    |    " + self.df['mature_annot'][i] 
+            print(">" + self.df["ids"][i] + " | " + self.df['mature_annot'][i] 
                     + "\n" + self.df['mature'][i] )
 
 
@@ -93,19 +94,21 @@ def encode_seqs(seqs):
             results[i, j, index] = 1.
     return results
 
-def pred_AMP(seqs,model,model_rf):        
+def pred_AMP(seqs,multi_rf,model,model_rf):        
         pep = importr('Peptides')
         ohe_seqs = encode_seqs(seqs)
         chem_array = pd.DataFrame(calc(seqs,pep)).values
         chem_array -= chem_mean
         chem_array /= chem_std
         model = models.load_model(model)
+        model_multi_rf = joblib.load(multi_rf)
         model_rf = joblib.load(model_rf)
+        pred_multi_rf = model_multi_rf.predict(chem_array )
         probs_dl = model.predict([chem_array,ohe_seqs])
         probs_dl = probs_dl.reshape(probs_dl.shape[0])
         probs_rf = np.array([x for x in zip(*model_rf.predict_proba(chem_array ))][1])
-        probs = 0.61*probs_dl + 0.39*probs_rf
-        annot = ["non-AMP with a probabiity of: " + str(np.round(x,3)) if x < 0.505 else "predicted AMP with a probabiity of: " + str(np.round(x,3)) for x in probs]
+        probs = 0.61*probs_dl + 0.39*probs_rf 
+        annot = ["non-AMP with a probabiity of: " + str(np.round(probs[x],3)) if probs[x] < 0.505 else "predicted AMP with a probabiity of: " + str(np.round(probs[x],3)) + " belonging to cluster:" + str(int(pred_multi_rf[x])) for x in range(len(probs))]
         y_pred = [0 if x < 0.5 else 1 for x in probs]
         return y_pred, annot
 
@@ -133,31 +136,35 @@ def seqs_to_ohe_octamers(seq,mean,std):
 
 ## makes prediction, returns the position of CS and the probaility 
 def ohe_prediction(octas,model_dl,model_rf,model_svm,wei): 
-    y_pred_dl = model_dl.predict(octas) 
-    y_pred_dl = y_pred_dl.reshape(y_pred_dl.shape[0]) 
-    y_pred_rf = np.array([x for x in zip(*model_rf.predict_proba(octas))][1]) 
-    y_pred_svm = np.array([x for x in zip(*model_svm.predict_proba(octas))][1])
-    y_pred = wei[0]*y_pred_dl + wei[1]*y_pred_rf + wei[2]*y_pred_svm
-    return np.argmax(y_pred),np.max(y_pred)
+    y_pred_dl = model_dl.predict(octas) if model_dl else []
+    y_pred_dl = y_pred_dl.reshape(y_pred_dl.shape[0]) if model_dl else []
+    y_pred_rf = np.array([x for x in zip(*model_rf.predict_proba(octas))][1]) if model_rf else []
+    y_pred_svm = np.array([x for x in zip(*model_svm.predict_proba(octas))][1]) if model_svm else  []
+    y_pred = wei[0]*y_pred_dl + wei[1]*y_pred_rf + wei[2]*y_pred_svm if wei else None
+    if wei:
+        return np.argmax(y_pred),np.max(y_pred)
+    else:
+        return np.argmax([y_pred_dl,y_pred_rf,y_pred_svm][np.argmax([len(y_pred_dl),len(y_pred_rf),len(y_pred_svm)])]),np.max([y_pred_dl,y_pred_rf,y_pred_svm][np.argmax([len(y_pred_dl),len(y_pred_rf),len(y_pred_svm)])])
+ 
 
 ## predict the mature sequence and return annotation    
 def pred_mature(seq,modelN,modelN_rf,modelN_svm,modelC,modelC_rf,modelC_svm):
     ohe_N = seqs_to_ohe_octamers(seq,43.98830865159782,82.4440045905732)
     ohe_C = seqs_to_ohe_octamers(seq,35.84697508896797, 56.168662322490874)
     #pos_N,prob_N  = ohe_prediction(ohe_N,modelN,modelN_rf,modelN_svm,(0.5,0.1,0.4))
-    pos_N,prob_N  = ohe_prediction(ohe_N,modelN,modelN_rf,modelN_svm,(0,0,1))
+    pos_N,prob_N  = ohe_prediction(ohe_N,0,0,modelN_svm,0)
     pos_C,prob_C  = ohe_prediction(ohe_C,modelC,modelC_rf,modelC_svm,(0.02, 0.89, 0.09))
     
    # pos_N,prob_N,pos_C,prob_C = ohe_prediction(seqs_to_ohe_octamers(seq),modelN,modelC)
     if prob_N >= 0.6 and len(seq[pos_N+4:]) > 4:
         if prob_C >= 0.6 and len(seq[pos_N+4:pos_C+4]) > 4:
-            return seq[pos_N+4:pos_C+4],"N-terminus CS predicted at position: " + str(pos_N+4) + ", with a probability of: " + str(np.round(prob_N,3)) + "    |    " + "C-terminus CS predicted at position: " + str(pos_C+4) + ", with a probability of: " + str(np.round(prob_C,3))
+            return seq[pos_N+4:pos_C+4],"N-terminus CS predicted at position: " + str(pos_N+4) + ", with a probability of: " + str(np.round(prob_N,3)) + "|" + "C-terminus CS predicted at position: " + str(pos_C+4) + ", with a probability of: " + str(np.round(prob_C,3))
         else:    
-            return seq[pos_N+4:],"N-terminus CS predicted at position: " + str(pos_N+4) + ", with a probability of: " + str(np.round(prob_N,3)) + "    |    No C-terminus CS predicted"
+            return seq[pos_N+4:],"N-terminus CS predicted at position: " + str(pos_N+4) + ", with a probability of: " + str(np.round(prob_N,3)) + "| No C-terminus CS predicted"
     elif prob_C >= 0.6 and len(seq[:pos_C+4]) > 4:
-        return seq[:pos_C+4],"No N-terminus CS predicted    |    C-terminus CS predicted at position: " + str(pos_C+4) + ", with a probability of: " + str(np.round(prob_C,3))
+        return seq[:pos_C+4],"No N-terminus CS predicted | C-terminus CS predicted at position: " + str(pos_C+4) + ", with a probability of: " + str(np.round(prob_C,3))
     else:
-        return seq,"No N-terminus CS predicted    |    No C-terminus CS predicted"
+        return seq,"No N-terminus CS predicted | No C-terminus CS predicted"
 
 def pred_mature_from_list(seqs,modelN,modelN_rf,modelN_svm,modelC,modelC_rf,modelC_svm):
     mature, mature_annot = [],[]

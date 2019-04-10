@@ -79,7 +79,7 @@ def main(argv):
             cs.print_fasta()
             sys.exit()
     elif flag == "p":
-        ap = proAmps_module.AMPpredictor(fasta,libpath + "/proAmps.h5",libpath + "/proAmps_rf.pkl")
+        ap = proAmps_module.AMPpredictor(fasta, libpath + "/multi_rf.pkl" ,libpath + "/proAmps.h5",libpath + "/proAmps_rf.pkl")
         ap.pred_from_propeps( libpath + "/CS_N_dnn.h5",libpath + "/CS_N_svm.pkl" , libpath+ "/CS_N_svm.pkl",  libpath + "/CS_C_dnn.h5", libpath + "/CS_C_rf.pkl", libpath + "/CS_C_svm.pkl")
         if flagO == 1:
             tem = sys.stdout
@@ -92,7 +92,7 @@ def main(argv):
             ap.print_fasta() 
             sys.exit()
     elif flag == 0:
-        ap = proAmps_module.AMPpredictor(fasta,libpath + "/proAmps.h5",libpath + "/proAmps_rf.pkl")
+        ap = proAmps_module.AMPpredictor(fasta,libpath + "/multi_rf.pkl",libpath + "/proAmps.h5",libpath + "/proAmps_rf.pkl")
         ap.predict_amps()
         if flagO == 1:
             tem = sys.stdout
