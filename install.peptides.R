@@ -1,1 +1,1 @@
-install.packages('Peptides', repos='http://cran.us.r-project.org')
+install.packages('Peptides', repos='https://cran.cnr.berkeley.edu/')
